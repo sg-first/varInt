@@ -106,12 +106,17 @@ public:
                 {
                     if (nowSub >= 2) //消除左边多出来的0
                     {
-                        if ((ri & 0b00000001) == 1) //取最高字节中的最低位，并将ptr[nowSub]最高位与其设为一致
-                            ptr[nowSub - 1] |= 0b10000000;
-                        ri >>= 1; //最高字节中最低位已被移走
-                        
+                        short zeroNum = nowSub - 1; //当前最高位左边0的个数（要取多少位）
+                        std::bitset<8> beop(ptr[nowSub - 1]); //准备操作当前result最高字节（中的高几位）
+                        std::bitset<8> op(ri); //取bin最高字节（中的第几位）
+                        for (short i = 0;i < zeroNum;i++)
+                        {
+                            beop[8 - zeroNum + i] = op[i];
+                        }
+                        ptr[nowSub - 1] = beop.to_ulong();
+                        ri >>= zeroNum; //已经被放置的位移走
                     }
-                    ptr[nowSub] = ri; //最后一字节放在最高字节 
+                    ptr[nowSub] = ri; //bin的最后一字节放在最高字节 
                     result >>= 1; //消除else中标志位造成的误差（右边多出来的0）
                     break;
                 }
