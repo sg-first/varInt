@@ -90,9 +90,6 @@ public:
             return bin[startPos];
         else
         {
-            if (endPos == 0)
-                endPos = bin.size();
-
             UInt64 result = 0;
             UInt8* ptr = (UInt8*)&result;
             short nowSub = 0; //小的是低字节
