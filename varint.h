@@ -33,8 +33,8 @@ private:
                 break;
         }
 
-        auto isEnd = [&ptr, &stopPos](short nextHightestBit) { return nextHightestBit>=stopPos && ((ptr[0] & 0b10000000) == 0); }; //这个不对，还得找最高位位置
-
+        auto isEnd = [&ptr, &stopPos](short nextHightestBit) { return nextHightestBit>=stopPos && ((ptr[0] & 0b10000000) == 0); };
+        
         short nextHightestBit = 7; //下一次要处理部分的最高位（下标）
         while (true)
         {
@@ -81,10 +81,13 @@ public:
     UInt64 AsUInt64() const { return AsUInt64(this->bin); }
     static UInt64 AsUInt64(const std::vector<UInt8>& bin, size_t startPos = 0, size_t endPos = 0)
     {
-        if (bin.empty())
+        if (endPos == 0)
+            endPos = bin.size();
+
+        if (startPos == endPos)
             return 0;
-        else if (bin.size() == 1)
-            return bin[0];
+        else if (endPos - startPos == 1)
+            return bin[startPos];
         else
         {
             if (endPos == 0)
