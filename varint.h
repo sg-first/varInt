@@ -34,66 +34,33 @@ public:
 
     std::vector<UInt8> getBin() { return this->bin; }
     SInt64 AsSInt64() const { return AsSInt64(this->bin); }
-    static SInt64 AsSInt64(const std::vector<UInt8>& bin, size_t startPos = 0, size_t endPos = 0)
+    UInt64 AsUInt64() const { return AsUInt64(this->bin); }
+
+    static SInt64 AsSInt64(const std::vector<UInt8>& bin, size_t startPos = 0)
     {
-        UInt64 result = AsUInt64(bin, startPos, endPos);
+        UInt64 result = AsUInt64(bin, startPos);
         if (result % 2 == 0)
 			return result / -2;
 		else
 			return result / 2 + 1;
     }
 
-    UInt64 AsUInt64() const { return AsUInt64(this->bin); }
-    static UInt64 AsUInt64(const std::vector<UInt8>& bin, size_t startPos = 0, size_t endPos = 0)
+    static UInt64 AsUInt64(const std::vector<UInt8>& bin, size_t startPos = 0) { return Decode(&bin[startPos]); }
+
+    static UInt64 Decode(const UInt8* bin)
     {
-        if (endPos == 0)
-            endPos = bin.size();
+        UInt64 result = 0;
 
-        if (startPos == endPos)
-            return 0;
-        else if (endPos - startPos == 1)
-            return bin[startPos];
-        else
-        {
-            UInt64 result = 0;
-            UInt8* ptr = (UInt8*)&result;
-            short nowSub = 0; //小的是低字节
+        auto isLast = [](const UInt8* i) { return (*i & 0b10000000) == 0; };
 
-            auto isLast = [](const UInt8& i) { return (i & 0b10000000) == 0; };
+		int bit = 0;
+		do
+		{
+			const UInt8 ri = *bin;
+			result |= (static_cast<UInt64>(ri & 0b01111111) << bit);
+			bit += 7;
+		} while (!isLast(bin++));
 
-            for (size_t i = startPos;i < endPos;i++)
-            {
-                UInt8 ri = bin[i];
-                if (isLast(ri))
-                {
-                    if (nowSub >= 2) //消除左边多出来的0
-                    {
-                        short zeroNum = nowSub - 1; //当前最高位左边0的个数（要取多少位）
-                        std::bitset<8> beop(ptr[nowSub - 1]); //准备操作当前result最高字节（中的高几位）
-                        std::bitset<8> op(ri); //取bin最高字节（中的第几位）
-                        for (short i = 0;i < zeroNum;i++)
-                        {
-                            beop[8 - zeroNum + i] = op[i];
-                        }
-                        ptr[nowSub - 1] = beop.to_ulong();
-                        ri >>= zeroNum; //已经被放置的位移走
-                    }
-                    ptr[nowSub] = ri; //bin的最后一字节放在最高字节 
-                    result >>= 1; //消除else中标志位造成的误差（右边多出来的0）
-                    break;
-                }
-                else
-                {
-                    result <<= 7; //腾地方（nowSub=1后再进行，左边会有一个多出来的0）
-                    //把新的放进来
-                    ri <<= 1; //remove flag bit（这步结束之后右边有个多出来的0）
-                    ptr[0] = ri; //现在的放到最低字节（下标越大的是越低位）
-                    
-                    nowSub++; //现在的最高字节到哪了
-                }
-            }
-            
-            return result;
-        }
+		return result;
     }
 };
