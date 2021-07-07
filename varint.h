@@ -17,65 +17,30 @@ class VarInt
 private:
     std::vector<UInt8> bin;
 
-    void init(UInt64 i)
+    void Encode(UInt64 i)
     {
-        if (i == 0)
-            return;
-
-        UInt8* ptr = (UInt8*)&i;
-
-        std::bitset<64> bi(i);
-        //find first 1 from the highest bit(real highest bit)
-        short stopPos = 63;
-        for (;stopPos >= 0;stopPos--)
+		int index = 0;
+        while(i)
         {
-            if (bi.test(stopPos))
-                break;
-        }
-
-        auto isEnd = [&ptr, &stopPos](short nextHightestBit) { return nextHightestBit>=stopPos && ((ptr[0] & 0b10000000) == 0); };
-        
-        short nextHightestBit = 7; //下一次要处理部分的最高位（下标）
-        while (true)
-        {
-            UInt8 temp = ptr[0];
-            if (isEnd(nextHightestBit)) //看到没到最后一位（如果当前位首位是1，还需要再处理一次。因此条件是检测首位为0）
-            {
-                //满足第二个条件首位一定是0，所以不用设flag bit
-                bin.push_back(temp); //最高位放在最后
-                break;
-            }
-            else
-            {
-                temp |= 0b10000000;
-                this->bin.insert(this->bin.begin(), temp); //越高位下标越小
-                i >>= 7; //把已处理完的7位去掉
-                nextHightestBit += 7;
-            }
+			bin.push_back(i & 0b01111111);
+			i >>= 7;
+			bin.back() |= i ? 0b10000000 : 0;
         }
     }
 
 public:
-    VarInt(UInt64 i) { this->init(i); }
-    VarInt(SInt64 i)
-    {
-        UInt64 zipcode = abs(i) * 2;
-        if (i > 0)
-            zipcode--; //正数在前
-        this->init(zipcode);
-    }
+    VarInt(UInt64 i) { this->Encode(i); }
+    VarInt(SInt64 i) { this->Encode(i > 0 ? (2 * i - 1) : (-2 * i)); }
 
     std::vector<UInt8> getBin() { return this->bin; }
     SInt64 AsSInt64() const { return AsSInt64(this->bin); }
     static SInt64 AsSInt64(const std::vector<UInt8>& bin, size_t startPos = 0, size_t endPos = 0)
     {
-        UInt64 zigcode = AsUInt64(bin, startPos, endPos);
-        SInt64 result = 0;
-        if (zigcode % 2 == 0)
-            result = -SInt64(zigcode) / 2; //偶数下标是负数
-        else
-            result = zigcode / 2 + 1;
-        return result;
+        UInt64 result = AsUInt64(bin, startPos, endPos);
+        if (result % 2 == 0)
+			return result / -2;
+		else
+			return result / 2 + 1;
     }
 
     UInt64 AsUInt64() const { return AsUInt64(this->bin); }
